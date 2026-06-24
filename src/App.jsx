@@ -339,7 +339,7 @@ function CalcFita({ margem }) {
 export default function App() {
   const [produto, setProduto] = useState('Bottom / Pingente');
   const [tipoCliente, setTipoCliente] = useState('revenda');
-  const [margem, setMargem] = useState('');
+  const [margem, setMargem] = useState('50');
 
   return (
     <div className="min-h-screen bg-gray-50">

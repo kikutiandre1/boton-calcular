@@ -66,6 +66,7 @@ function Checkbox({ label, checked, onChange }) {
 }
 
 function ResultBox({ precoUnit, total, moldePorPeca, margem, freteInfo }) {
+  const [mostrarCusto, setMostrarCusto] = useState(false);
   const margemNum = parseFloat(margem) || 0;
   const temMargem = margemNum > 0 && margemNum < 100;
   const precoVenda = temMargem ? precoUnit / (1 - margemNum / 100) : null;
@@ -73,29 +74,39 @@ function ResultBox({ precoUnit, total, moldePorPeca, margem, freteInfo }) {
 
   return (
     <div className="mt-6 space-y-3">
-      {/* Custo */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-2">
-        <p className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Custo</p>
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-600">Preço Unitário</span>
-          <span className="text-lg font-bold text-blue-700">{fmt(precoUnit)}</span>
-        </div>
-        {moldePorPeca > 0 && (
-          <div className="flex justify-between items-center text-xs text-gray-400">
-            <span>↳ inclui molde diluído</span>
-            <span>{fmt(moldePorPeca)} / peça</span>
+      {/* Custo — colapsável */}
+      <div className="border border-blue-200 rounded-xl overflow-hidden">
+        <button
+          onClick={() => setMostrarCusto(v => !v)}
+          className="w-full flex justify-between items-center px-5 py-3 bg-blue-50 hover:bg-blue-100 transition-colors"
+        >
+          <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Custo</span>
+          <span className={`text-blue-400 text-sm transition-transform duration-200 ${mostrarCusto ? 'rotate-180' : ''}`}>▼</span>
+        </button>
+        {mostrarCusto && (
+          <div className="bg-blue-50 px-5 pb-5 space-y-2 border-t border-blue-100">
+            <div className="flex justify-between items-center pt-3">
+              <span className="text-sm text-gray-600">Preço Unitário</span>
+              <span className="text-lg font-bold text-blue-700">{fmt(precoUnit)}</span>
+            </div>
+            {moldePorPeca > 0 && (
+              <div className="flex justify-between items-center text-xs text-gray-400">
+                <span>↳ inclui molde diluído</span>
+                <span>{fmt(moldePorPeca)} / peça</span>
+              </div>
+            )}
+            {freteInfo && (
+              <div className="flex justify-between items-center text-xs text-gray-400">
+                <span>↳ inclui frete</span>
+                <span>{fmt(freteInfo)}</span>
+              </div>
+            )}
+            <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
+              <span className="font-semibold text-gray-700">Total de Custo</span>
+              <span className="text-xl font-extrabold text-blue-800">{fmt(total)}</span>
+            </div>
           </div>
         )}
-        {freteInfo && (
-          <div className="flex justify-between items-center text-xs text-gray-400">
-            <span>↳ inclui frete</span>
-            <span>{fmt(freteInfo)}</span>
-          </div>
-        )}
-        <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
-          <span className="font-semibold text-gray-700">Total de Custo</span>
-          <span className="text-xl font-extrabold text-blue-800">{fmt(total)}</span>
-        </div>
       </div>
 
       {/* Preço de venda com margem */}

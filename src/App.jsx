@@ -7,7 +7,18 @@ import {
   fmt, calcMedalha, calcBottom, calcChaveiro, calcCracha, calcFita,
 } from './utils/calculos';
 
-const PRODUTOS = ['Medalha', 'Bottom / Pingente', 'Chaveiro', 'Crachá', 'Fita Alcatevi'];
+const PRODUTOS = ['Bottom / Pingente', 'Medalha', 'Chaveiro', 'Crachá', 'Fita Alcatevi'];
+
+// Determina a faixa de área do bottom a partir dos cm²
+function getAreaKey(cm2) {
+  if (cm2 <= 0) return null;
+  if (cm2 < 5)  return { key: '499',  label: 'Até 4,99 cm²' };
+  if (cm2 < 8)  return { key: '799',  label: '5 a 7,99 cm²' };
+  if (cm2 < 11) return { key: '1099', label: '8 a 10,99 cm²' };
+  if (cm2 < 15) return { key: '1499', label: '11 a 14,99 cm²' };
+  if (cm2 < 20) return { key: '1999', label: '15 a 19,99 cm²' };
+  return null; // fora de faixa
+}
 
 function Field({ label, children }) {
   return (
@@ -54,19 +65,19 @@ function Checkbox({ label, checked, onChange }) {
   );
 }
 
-function ResultBox({ precoUnit, total, extra }) {
+function ResultBox({ precoUnit, total, moldePorPeca }) {
   return (
     <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-2">
       <div className="flex justify-between items-center">
         <span className="text-sm text-gray-600">Preço Unitário</span>
         <span className="text-lg font-bold text-blue-700">{fmt(precoUnit)}</span>
       </div>
-      {extra?.map((e, i) => (
-        <div key={i} className="flex justify-between items-center text-sm text-gray-500">
-          <span>{e.label}</span>
-          <span>{fmt(e.valor)}</span>
+      {moldePorPeca > 0 && (
+        <div className="flex justify-between items-center text-xs text-gray-400">
+          <span>↳ inclui molde diluído</span>
+          <span>{fmt(moldePorPeca)} / peça</span>
         </div>
-      ))}
+      )}
       <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
         <span className="font-semibold text-gray-700">Total</span>
         <span className="text-xl font-extrabold text-blue-800">{fmt(total)}</span>
@@ -94,9 +105,9 @@ function CalcMedalha({ tipoCliente }) {
         <Field label="Quantidade">
           <NumberInput value={quantidade} onChange={setQtd} />
         </Field>
-        <Field label="Nº de Cores (0–5)">
+        <Field label="Nº de Cores (0–12)">
           <Select value={cores} onChange={setCores}
-            options={[0,1,2,3,4,5].map(v => ({ value: v, label: `${v} cor${v !== 1 ? 'es' : ''}` }))} />
+            options={Array.from({ length: 13 }, (_, v) => ({ value: v, label: `${v} cor${v !== 1 ? 'es' : ''}` }))} />
         </Field>
         <Field label="Espessura (mm)">
           <Select value={espessura} onChange={v => setEspessura(Number(v))}
@@ -105,36 +116,59 @@ function CalcMedalha({ tipoCliente }) {
       </div>
       <div className="flex flex-wrap gap-4">
         <Checkbox label="Com Fita" checked={comFita} onChange={setComFita} />
-        <Checkbox label="Cobrar Molde/Ferramenta" checked={cobrarMolde} onChange={setCobrarMolde} />
+        <Checkbox label="Cobrar Molde/Ferramenta (diluído no unit.)" checked={cobrarMolde} onChange={setCobrarMolde} />
       </div>
       {res.descPct > 0 && (
         <p className="text-xs text-green-700 bg-green-50 rounded-lg px-3 py-1">
           Adicional por quantidade: +{Math.round(res.descPct * 100)}% sobre o preço base
         </p>
       )}
-      <ResultBox precoUnit={res.precoUnit} total={res.total}
-        extra={res.molde > 0 ? [{ label: 'Molde/Ferramenta', valor: res.molde }] : []} />
+      <ResultBox precoUnit={res.precoUnit} total={res.total} moldePorPeca={res.moldePorPeca} />
     </div>
   );
 }
 
 function CalcBottom({ tipoCliente }) {
-  const [area, setArea] = useState('499');
+  const [largura, setLargura] = useState('');
+  const [altura, setAltura] = useState('');
   const [banho, setBanho] = useState('niquel');
   const [quantidade, setQtd] = useState(100);
   const [cores, setCores] = useState(0);
   const [fecho, setFecho] = useState('nenhum');
   const [cobrarMolde, setCobrarMolde] = useState(false);
 
+  const cm2 = parseFloat(largura || 0) * parseFloat(altura || 0);
+  const faixaInfo = getAreaKey(cm2);
+  const area = faixaInfo?.key ?? '499';
+
   const res = calcBottom({ area, banho, quantidade, cores, fecho, cobrarMolde, tipoCliente });
 
   return (
     <div className="space-y-4">
+      {/* Dimensões → área automática */}
+      <Field label="Dimensões do Pin (cm)">
+        <div className="flex items-center gap-2">
+          <input
+            type="number" min="0" step="0.1" placeholder="Largura"
+            value={largura} onChange={e => setLargura(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span className="text-gray-400 font-medium">×</span>
+          <input
+            type="number" min="0" step="0.1" placeholder="Altura"
+            value={altura} onChange={e => setAltura(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        {cm2 > 0 && (
+          <div className={`mt-1 text-xs px-3 py-1 rounded-lg ${faixaInfo ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+            {cm2.toFixed(2)} cm² →{' '}
+            {faixaInfo ? faixaInfo.label : 'Fora das faixas disponíveis (máx. 19,99 cm²)'}
+          </div>
+        )}
+      </Field>
+
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Área">
-          <Select value={area} onChange={setArea}
-            options={BOTTOM_AREAS.map(a => ({ value: a.key, label: a.label }))} />
-        </Field>
         <Field label="Banho">
           <Select value={banho} onChange={setBanho}
             options={[{ value: 'niquel', label: 'Níquel' }, { value: 'ouro', label: 'Ouro' }]} />
@@ -142,9 +176,9 @@ function CalcBottom({ tipoCliente }) {
         <Field label="Quantidade">
           <NumberInput value={quantidade} onChange={setQtd} />
         </Field>
-        <Field label="Nº de Cores">
+        <Field label="Nº de Cores (0–12)">
           <Select value={cores} onChange={setCores}
-            options={[0,1,2,3,4].map(v => ({ value: v, label: `${v} cor${v !== 1 ? 'es' : ''}` }))} />
+            options={Array.from({ length: 13 }, (_, v) => ({ value: v, label: `${v} cor${v !== 1 ? 'es' : ''}` }))} />
         </Field>
         <Field label="Fecho">
           <Select value={fecho} onChange={setFecho}
@@ -156,9 +190,13 @@ function CalcBottom({ tipoCliente }) {
             ]} />
         </Field>
       </div>
-      <Checkbox label="Cobrar Molde/Ferramenta" checked={cobrarMolde} onChange={setCobrarMolde} />
-      <ResultBox precoUnit={res.precoUnit} total={res.total}
-        extra={res.molde > 0 ? [{ label: 'Molde/Ferramenta', valor: res.molde }] : []} />
+      <Checkbox label="Cobrar Molde/Ferramenta (diluído no unit.)" checked={cobrarMolde} onChange={setCobrarMolde} />
+      {faixaInfo && <ResultBox precoUnit={res.precoUnit} total={res.total} moldePorPeca={res.moldePorPeca} />}
+      {cm2 > 0 && !faixaInfo && (
+        <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">
+          Área fora das faixas tabeladas. Consulte o vendedor.
+        </p>
+      )}
     </div>
   );
 }
@@ -182,9 +220,9 @@ function CalcChaveiro({ tipoCliente }) {
         <Field label="Quantidade">
           <NumberInput value={quantidade} onChange={setQtd} />
         </Field>
-        <Field label="Nº de Cores">
+        <Field label="Nº de Cores (0–12)">
           <Select value={cores} onChange={setCores}
-            options={[0,1,2,3,4].map(v => ({ value: v, label: `${v} cor${v !== 1 ? 'es' : ''}` }))} />
+            options={Array.from({ length: 13 }, (_, v) => ({ value: v, label: `${v} cor${v !== 1 ? 'es' : ''}` }))} />
         </Field>
         <Field label="Corrente">
           <Select value={corrente} onChange={setCorrente}
@@ -196,9 +234,8 @@ function CalcChaveiro({ tipoCliente }) {
             ]} />
         </Field>
       </div>
-      <Checkbox label="Cobrar Molde/Ferramenta" checked={cobrarMolde} onChange={setCobrarMolde} />
-      <ResultBox precoUnit={res.precoUnit} total={res.total}
-        extra={res.molde > 0 ? [{ label: 'Molde/Ferramenta', valor: res.molde }] : []} />
+      <Checkbox label="Cobrar Molde/Ferramenta (diluído no unit.)" checked={cobrarMolde} onChange={setCobrarMolde} />
+      <ResultBox precoUnit={res.precoUnit} total={res.total} moldePorPeca={res.moldePorPeca} />
     </div>
   );
 }
@@ -264,13 +301,13 @@ function CalcFita() {
 }
 
 export default function App() {
-  const [produto, setProduto] = useState(PRODUTOS[0]);
+  const [produto, setProduto] = useState('Bottom / Pingente');
   const [tipoCliente, setTipoCliente] = useState('revenda');
 
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-800">Boton — Calculadora de Preços</h1>
+        <h1 className="text-xl font-bold text-gray-800">Pin Zamac — Calculadora de Preços</h1>
         <p className="text-xs text-gray-500">Selecione o produto e preencha os dados para calcular</p>
       </header>
 

@@ -35,10 +35,14 @@ export function calcMedalha({ medida, quantidade, cores, comFita, espessuraMm, c
 
   const precoUnit = precoComDesc + corExtra + fitaExtra + espExtra;
   const precoFinal = applyBV(precoUnit, tipoCliente);
-  const molde = cobrarMolde ? (MEDALHAS_FERRAMENTA[medida] ?? 550.56) : 0;
-  const total = precoFinal * qtd + molde;
 
-  return { precoUnit: precoFinal, total, molde, descPct };
+  // Molde diluído no preço unitário
+  const moldeTotal = cobrarMolde ? (MEDALHAS_FERRAMENTA[medida] ?? 550.56) : 0;
+  const moldePorPeca = qtd > 0 ? moldeTotal / qtd : 0;
+  const precoUnitFinal = precoFinal + moldePorPeca;
+  const total = precoUnitFinal * qtd;
+
+  return { precoUnit: precoUnitFinal, total, moldeTotal, moldePorPeca, descPct };
 }
 
 // ── BOTTONS / PINGENTES ───────────────────────────────
@@ -71,9 +75,12 @@ export function calcBottom({ area, banho, quantidade, cores, fecho, cobrarMolde,
   if (fecho === 'argolinha') precoUnit += BOTTOM_ARGOLINHA;
   if (fecho === 'magnetico') precoUnit += BOTTOM_FECHO_MAGNETICO;
 
-  const molde = cobrarMolde ? BOTTOM_FERRAMENTA : 0;
-  const total = precoUnit * qtd + molde;
-  return { precoUnit, total, molde };
+  // Molde diluído no preço unitário
+  const moldeTotal = cobrarMolde ? BOTTOM_FERRAMENTA : 0;
+  const moldePorPeca = qtd > 0 ? moldeTotal / qtd : 0;
+  const precoUnitFinal = precoUnit + moldePorPeca;
+  const total = precoUnitFinal * qtd;
+  return { precoUnit: precoUnitFinal, total, moldeTotal, moldePorPeca };
 }
 
 // ── CHAVEIROS ─────────────────────────────────────────
@@ -86,9 +93,13 @@ export function calcChaveiro({ area, quantidade, cores, corrente, cobrarMolde, t
   if (corrente === 'esferica') precoUnit += CHAVEIRO_CORRENTE_ESFERICA;
 
   precoUnit = applyBV(precoUnit, tipoCliente);
-  const molde = cobrarMolde ? CHAVEIRO_FERRAMENTA : 0;
-  const total = precoUnit * qtd + molde;
-  return { precoUnit, total, molde };
+
+  // Molde diluído no preço unitário
+  const moldeTotal = cobrarMolde ? CHAVEIRO_FERRAMENTA : 0;
+  const moldePorPeca = qtd > 0 ? moldeTotal / qtd : 0;
+  const precoUnitFinal = precoUnit + moldePorPeca;
+  const total = precoUnitFinal * qtd;
+  return { precoUnit: precoUnitFinal, total, moldeTotal, moldePorPeca };
 }
 
 // ── CRACHÁ ────────────────────────────────────────────

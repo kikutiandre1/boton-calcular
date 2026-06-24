@@ -354,9 +354,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-800">Pin Zamac — Calculadora de Preços</h1>
-        <p className="text-xs text-gray-500">Selecione o produto e preencha os dados para calcular</p>
+      <header className="bg-black px-6 py-4 flex flex-col items-center gap-2">
+        <img src="/logo.png" alt="Boton Logotipo" className="h-16 object-contain" />
+        <p className="text-xs text-gray-400">Calculadora de Preços — Pin Zamac</p>
       </header>
 
       <main className="max-w-lg mx-auto p-4 space-y-4 mt-4">

@@ -9,6 +9,13 @@ import {
 
 const PRODUTOS = ['Bottom / Pingente', 'Medalha', 'Chaveiro', 'Crachá', 'Fita Alcatevi'];
 
+function getPrazoPinMetal(qtd) {
+  if (qtd <= 1000) return '12 dias úteis';
+  if (qtd <= 3000) return '15 dias úteis';
+  if (qtd <= 5000) return '21 dias úteis';
+  return 'A combinar';
+}
+
 // Determina a faixa de área do bottom a partir dos cm²
 function getAreaKey(cm2) {
   if (cm2 <= 0) return null;
@@ -175,7 +182,7 @@ function CalcMedalha({ tipoCliente, margem }) {
   );
 }
 
-function CalcBottom({ tipoCliente, margem }) {
+function CalcBottom({ tipoCliente, margem, cliente }) {
   const [largura, setLargura] = useState('');
   const [altura, setAltura] = useState('');
   const [banho, setBanho] = useState('niquel');
@@ -183,12 +190,51 @@ function CalcBottom({ tipoCliente, margem }) {
   const [cores, setCores] = useState(0);
   const [fecho, setFecho] = useState('nenhum');
   const [cobrarMolde, setCobrarMolde] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [statusEnvio, setStatusEnvio] = useState(null);
 
   const cm2 = parseFloat(largura || 0) * parseFloat(altura || 0);
   const faixaInfo = getAreaKey(cm2);
   const area = faixaInfo?.key ?? '499';
 
   const res = calcBottom({ area, banho, quantidade, cores, fecho, cobrarMolde, tipoCliente });
+
+  const margemNum = parseFloat(margem) || 0;
+  const temMargem = margemNum > 0 && margemNum < 100;
+  const totalVenda = temMargem ? res.total / (1 - margemNum / 100) : res.total;
+
+  async function enviarOrcamento() {
+    setEnviando(true);
+    setStatusEnvio(null);
+    const banhoLabel = banho === 'ouro' ? 'Dourado/Ouro' : 'Níquel/Prata';
+    const coresNum = parseInt(cores) || 0;
+    const coresLabel = coresNum === 1 ? '1 cor' : `${coresNum} cores`;
+    const qty = parseInt(quantidade) || 0;
+    const texto = [
+      'Segue o orçamento:',
+      '',
+      `Pin de metal (${banhoLabel}, ${coresLabel})`,
+      `Tamanho ${largura} x ${altura}cm`,
+      `Quantidade: ${qty} unidades`,
+      '',
+      `*Valor total: ${fmt(totalVenda)}*`,
+      `Prazo de produção: ${getPrazoPinMetal(qty)}`,
+      '',
+      '_Obs: Enviar a arte em PDF (vetor)_',
+    ].join('\n');
+    try {
+      const r = await fetch('/api/enviar-orcamento', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numero: cliente, texto }),
+      });
+      setStatusEnvio(r.ok ? 'ok' : 'erro');
+    } catch {
+      setStatusEnvio('erro');
+    } finally {
+      setEnviando(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -243,6 +289,27 @@ function CalcBottom({ tipoCliente, margem }) {
         <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">
           Área fora das faixas tabeladas. Consulte o vendedor.
         </p>
+      )}
+      {cliente && faixaInfo && (
+        <div className="mt-4 space-y-2">
+          <button
+            onClick={enviarOrcamento}
+            disabled={enviando || !largura || !altura}
+            className="w-full py-3 rounded-xl text-white font-semibold text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {enviando ? 'Enviando...' : 'Enviar Orçamento para o Cliente'}
+          </button>
+          {statusEnvio === 'ok' && (
+            <p className="text-sm text-center text-green-700 bg-green-50 rounded-lg py-2">
+              Orçamento enviado com sucesso!
+            </p>
+          )}
+          {statusEnvio === 'erro' && (
+            <p className="text-sm text-center text-red-600 bg-red-50 rounded-lg py-2">
+              Erro ao enviar. Tente novamente.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
@@ -348,6 +415,7 @@ function CalcFita({ margem }) {
 }
 
 export default function App() {
+  const cliente = new URLSearchParams(window.location.search).get('cliente') ?? '';
   const [produto, setProduto] = useState('Bottom / Pingente');
   const [tipoCliente, setTipoCliente] = useState('revenda');
   const [margem, setMargem] = useState('50');
@@ -360,6 +428,11 @@ export default function App() {
       </header>
 
       <main className="max-w-lg mx-auto p-4 space-y-4 mt-4">
+        {cliente && (
+          <div className="bg-yellow-50 border border-yellow-300 rounded-xl px-4 py-2 text-sm text-yellow-800">
+            Enviando orçamento para: <strong>{cliente}</strong>
+          </div>
+        )}
         <div className="bg-white rounded-xl border border-gray-200 p-4 grid grid-cols-2 gap-4">
           <Field label="Tipo de Cliente">
             <Select
@@ -404,7 +477,7 @@ export default function App() {
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="text-base font-semibold text-gray-700 mb-4">{produto}</h2>
           {produto === 'Medalha' && <CalcMedalha tipoCliente={tipoCliente} margem={margem} />}
-          {produto === 'Bottom / Pingente' && <CalcBottom tipoCliente={tipoCliente} margem={margem} />}
+          {produto === 'Bottom / Pingente' && <CalcBottom tipoCliente={tipoCliente} margem={margem} cliente={cliente} />}
           {produto === 'Chaveiro' && <CalcChaveiro tipoCliente={tipoCliente} margem={margem} />}
           {produto === 'Crachá' && <CalcCracha tipoCliente={tipoCliente} margem={margem} />}
           {produto === 'Fita Alcatevi' && <CalcFita margem={margem} />}

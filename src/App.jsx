@@ -65,28 +65,64 @@ function Checkbox({ label, checked, onChange }) {
   );
 }
 
-function ResultBox({ precoUnit, total, moldePorPeca }) {
+function ResultBox({ precoUnit, total, moldePorPeca, margem, freteInfo }) {
+  const margemNum = parseFloat(margem) || 0;
+  const temMargem = margemNum > 0 && margemNum < 100;
+  const precoVenda = temMargem ? precoUnit / (1 - margemNum / 100) : null;
+  const totalVenda = temMargem ? total / (1 - margemNum / 100) : null;
+
   return (
-    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-2">
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-gray-600">Preço Unitário</span>
-        <span className="text-lg font-bold text-blue-700">{fmt(precoUnit)}</span>
+    <div className="mt-6 space-y-3">
+      {/* Custo */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-2">
+        <p className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Custo</p>
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-600">Preço Unitário</span>
+          <span className="text-lg font-bold text-blue-700">{fmt(precoUnit)}</span>
+        </div>
+        {moldePorPeca > 0 && (
+          <div className="flex justify-between items-center text-xs text-gray-400">
+            <span>↳ inclui molde diluído</span>
+            <span>{fmt(moldePorPeca)} / peça</span>
+          </div>
+        )}
+        {freteInfo && (
+          <div className="flex justify-between items-center text-xs text-gray-400">
+            <span>↳ inclui frete</span>
+            <span>{fmt(freteInfo)}</span>
+          </div>
+        )}
+        <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
+          <span className="font-semibold text-gray-700">Total de Custo</span>
+          <span className="text-xl font-extrabold text-blue-800">{fmt(total)}</span>
+        </div>
       </div>
-      {moldePorPeca > 0 && (
-        <div className="flex justify-between items-center text-xs text-gray-400">
-          <span>↳ inclui molde diluído</span>
-          <span>{fmt(moldePorPeca)} / peça</span>
+
+      {/* Preço de venda com margem */}
+      {temMargem && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-5 space-y-2">
+          <p className="text-xs font-semibold text-green-500 uppercase tracking-wide">
+            Preço de Venda — Margem {margemNum}%
+          </p>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Unitário de Venda</span>
+            <span className="text-lg font-bold text-green-700">{fmt(precoVenda)}</span>
+          </div>
+          <div className="flex justify-between items-center text-xs text-gray-400">
+            <span>↳ lucro por peça</span>
+            <span>{fmt(precoVenda - precoUnit)}</span>
+          </div>
+          <div className="border-t border-green-200 pt-2 flex justify-between items-center">
+            <span className="font-semibold text-gray-700">Total de Venda</span>
+            <span className="text-xl font-extrabold text-green-800">{fmt(totalVenda)}</span>
+          </div>
         </div>
       )}
-      <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
-        <span className="font-semibold text-gray-700">Total</span>
-        <span className="text-xl font-extrabold text-blue-800">{fmt(total)}</span>
-      </div>
     </div>
   );
 }
 
-function CalcMedalha({ tipoCliente }) {
+function CalcMedalha({ tipoCliente, margem }) {
   const [medida, setMedida] = useState('50mm');
   const [quantidade, setQtd] = useState(50);
   const [cores, setCores] = useState(0);
@@ -123,12 +159,12 @@ function CalcMedalha({ tipoCliente }) {
           Adicional por quantidade: +{Math.round(res.descPct * 100)}% sobre o preço base
         </p>
       )}
-      <ResultBox precoUnit={res.precoUnit} total={res.total} moldePorPeca={res.moldePorPeca} />
+      <ResultBox precoUnit={res.precoUnit} total={res.total} moldePorPeca={res.moldePorPeca} margem={margem} />
     </div>
   );
 }
 
-function CalcBottom({ tipoCliente }) {
+function CalcBottom({ tipoCliente, margem }) {
   const [largura, setLargura] = useState('');
   const [altura, setAltura] = useState('');
   const [banho, setBanho] = useState('niquel');
@@ -191,7 +227,7 @@ function CalcBottom({ tipoCliente }) {
         </Field>
       </div>
       <Checkbox label="Cobrar Molde/Ferramenta (diluído no unit.)" checked={cobrarMolde} onChange={setCobrarMolde} />
-      {faixaInfo && <ResultBox precoUnit={res.precoUnit} total={res.total} moldePorPeca={res.moldePorPeca} />}
+      {faixaInfo && <ResultBox precoUnit={res.precoUnit} total={res.total} moldePorPeca={res.moldePorPeca} margem={margem} />}
       {cm2 > 0 && !faixaInfo && (
         <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">
           Área fora das faixas tabeladas. Consulte o vendedor.
@@ -201,7 +237,7 @@ function CalcBottom({ tipoCliente }) {
   );
 }
 
-function CalcChaveiro({ tipoCliente }) {
+function CalcChaveiro({ tipoCliente, margem }) {
   const [area, setArea] = useState('4');
   const [quantidade, setQtd] = useState(100);
   const [cores, setCores] = useState(0);
@@ -235,12 +271,12 @@ function CalcChaveiro({ tipoCliente }) {
         </Field>
       </div>
       <Checkbox label="Cobrar Molde/Ferramenta (diluído no unit.)" checked={cobrarMolde} onChange={setCobrarMolde} />
-      <ResultBox precoUnit={res.precoUnit} total={res.total} moldePorPeca={res.moldePorPeca} />
+      <ResultBox precoUnit={res.precoUnit} total={res.total} moldePorPeca={res.moldePorPeca} margem={margem} />
     </div>
   );
 }
 
-function CalcCracha({ tipoCliente }) {
+function CalcCracha({ tipoCliente, margem }) {
   const [opcaoKey, setOpcaoKey] = useState('aco_simples');
   const [quantidade, setQtd] = useState(10);
   const [fecho, setFecho] = useState('nenhum');
@@ -270,12 +306,12 @@ function CalcCracha({ tipoCliente }) {
       <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-1">
         Reajuste de 15% já aplicado nos preços de crachá.
       </p>
-      <ResultBox precoUnit={res.precoUnit} total={res.total} />
+      <ResultBox precoUnit={res.precoUnit} total={res.total} margem={margem} />
     </div>
   );
 }
 
-function CalcFita() {
+function CalcFita({ margem }) {
   const [largura, setLargura] = useState('20 mm');
   const [quantidade, setQtd] = useState(100);
   const [comFrete, setComFrete] = useState(false);
@@ -295,7 +331,7 @@ function CalcFita() {
       <Checkbox label="Incluir Frete (R$ 86,40)" checked={comFrete} onChange={setComFrete} />
       <p className="text-xs text-gray-500">Faixas de preço: 100–499 / 500–999 / 1000+ unidades</p>
       <ResultBox precoUnit={res.precoUnit} total={res.total}
-        extra={res.frete > 0 ? [{ label: 'Frete', valor: res.frete }] : []} />
+        freteInfo={res.frete > 0 ? res.frete : null} margem={margem} />
     </div>
   );
 }
@@ -303,6 +339,7 @@ function CalcFita() {
 export default function App() {
   const [produto, setProduto] = useState('Bottom / Pingente');
   const [tipoCliente, setTipoCliente] = useState('revenda');
+  const [margem, setMargem] = useState('');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -312,13 +349,28 @@ export default function App() {
       </header>
 
       <main className="max-w-lg mx-auto p-4 space-y-4 mt-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 grid grid-cols-2 gap-4">
           <Field label="Tipo de Cliente">
             <Select
               value={tipoCliente}
               onChange={setTipoCliente}
               options={TIPOS_CLIENTE.map(t => ({ value: t.id, label: t.label }))}
             />
+          </Field>
+          <Field label="Margem de Lucro (%)">
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                max="99"
+                step="0.5"
+                placeholder="Ex: 30"
+                value={margem}
+                onChange={e => setMargem(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full pr-8 focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+            </div>
           </Field>
         </div>
 
@@ -340,11 +392,11 @@ export default function App() {
 
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="text-base font-semibold text-gray-700 mb-4">{produto}</h2>
-          {produto === 'Medalha' && <CalcMedalha tipoCliente={tipoCliente} />}
-          {produto === 'Bottom / Pingente' && <CalcBottom tipoCliente={tipoCliente} />}
-          {produto === 'Chaveiro' && <CalcChaveiro tipoCliente={tipoCliente} />}
-          {produto === 'Crachá' && <CalcCracha tipoCliente={tipoCliente} />}
-          {produto === 'Fita Alcatevi' && <CalcFita />}
+          {produto === 'Medalha' && <CalcMedalha tipoCliente={tipoCliente} margem={margem} />}
+          {produto === 'Bottom / Pingente' && <CalcBottom tipoCliente={tipoCliente} margem={margem} />}
+          {produto === 'Chaveiro' && <CalcChaveiro tipoCliente={tipoCliente} margem={margem} />}
+          {produto === 'Crachá' && <CalcCracha tipoCliente={tipoCliente} margem={margem} />}
+          {produto === 'Fita Alcatevi' && <CalcFita margem={margem} />}
         </div>
       </main>
     </div>
